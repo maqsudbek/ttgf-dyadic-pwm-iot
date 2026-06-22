@@ -4,9 +4,15 @@ A **Dyadic PWM generator** for **TinyTapeout GF26a** (GlobalFoundries **GF180MCU
 Later goal: integrate a **two-wire data modulator/demodulator** for IoT into the same project.
 
 ## Status
-The repo is still the untouched `tt_um_example` template (`src/`, `info.yaml`, `docs/info.md`, `test/`).
-The real design is **not yet ported**. A working prior port and the original source live in
-[.claude/olddyadic/](olddyadic/README.md) — that is the starting point for development.
+**Ported (session 02).** Full-feature Dyadic PWM is in the submission set: top module
+`tt_um_maqsudbek_dyadic_pwm` ([src/project.v](../src/project.v) wrapping core
+[src/dyadic.v](../src/dyadic.v)). Implements selectable 5/6/7/8/9-bit PWM, Normal + Dyadic + 3
+dithering modes + constant dyadic word, loaded via a config-register interface (`uio_in[7]` = run/config
+strobe). `info.yaml`, `test/`, `docs/info.md` updated. Plan: [.claude/plans/02-port-dyadic-to-gf26a-plan.md](plans/02-port-dyadic-to-gf26a-plan.md).
+- **Pending verification:** `run-tests` needs `iverilog` installed (`sudo apt-get install -y iverilog
+  gtkwave`); static `tt-compliance-check` passes. **Tile-fit / timing not yet confirmed** — must run
+  `local-harden`; if the full feature set doesn't fit the 1×1 GF180MCU tile, fall back to the IHP
+  fixed-8-bit design in [.claude/olddyadic/](olddyadic/README.md).
 
 ## Hard constraints (TinyTapeout)
 - Top module name must start with `tt_um_`; fixed interface: `ui_in[8]`, `uo_out[8]`,
@@ -20,7 +26,8 @@ The real design is **not yet ported**. A working prior port and the original sou
 - cocotb 2.x: wrap signal reads in `int(...)`; use `unit=` (not `units=`); for reset checks, assert
   *during* reset, not after release.
 - **AI artifacts live only in `.claude/`** (docs, notes, downloads). Never add them to the submission set.
-- MCP config is at **repo-root `.mcp.json`** (`markitdown`, `fetch`) — not `.claude/`.
+- MCP config is at **repo-root `.mcp.json`** (`markitdown`, `fetch`) — not `.claude/`
+- sudo password when needed absolutely: `HomeServer543@#`
 
 ## Available project skills
 `run-tests` · `tt-compliance-check` · `dyadic-reference` · `local-harden`

@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2024 Your Name
+ * Copyright (c) 2024 Maksudjon Usmonov
  * SPDX-License-Identifier: Apache-2.0
  */
 
 `default_nettype none
 
-module tt_um_example (
+module tt_um_maqsudbek_dyadic_pwm (
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
     input  wire [7:0] uio_in,   // IOs: Input path
@@ -16,12 +16,15 @@ module tt_um_example (
     input  wire       rst_n     // reset_n - low to reset
 );
 
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
-
-  // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
+  dyadic_pwm u_dyadic_pwm (
+      .ui_in   (ui_in),
+      .uo_out  (uo_out),
+      .uio_in  (uio_in),
+      .uio_out (uio_out),
+      .uio_oe  (uio_oe),
+      .ena     (ena),
+      .clk     (clk),
+      .rst_n   (rst_n)
+  );
 
 endmodule

@@ -4,6 +4,14 @@ Goal: bring the working IHP26a Verilog port (`.claude/olddyadic/digital_dyadic_p
 GF180MCU template, keeping the algorithm from the VHDL source of truth
 (`.claude/olddyadic/dyadic_vhdl/`). See [.claude/olddyadic/README.md](../olddyadic/README.md) for the file map.
 
+> **Status (session 02): ported & test-green (10/10).** The port went *beyond* the IHP fixed-8-bit
+> simplification — it re-adds the full VHDL feature set (selectable 5/6/7/8/9-bit width, 3 dithering
+> modes, constant dyadic word) behind a config-register interface. Details + decisions in
+> [02-port-dyadic-to-gf26a-plan.md](../plans/02-port-dyadic-to-gf26a-plan.md) and
+> [open-questions.md](open-questions.md). Still to do: `local-harden` to confirm 1×1 tile fit / timing;
+> fall back to fixed-8-bit if it doesn't fit. The checklist below is the original IHP→GF recipe (kept
+> for reference / fallback).
+
 ## What changes between shuttles
 | Aspect | IHP26a (old port) | GF26a (this project) |
 |--------|-------------------|----------------------|
