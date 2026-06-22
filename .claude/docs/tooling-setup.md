@@ -2,14 +2,35 @@
 
 Host: Orange Pi 5 Plus, Debian 12 arm64. `sudo` authorized.
 
+## Permissions posture (`.claude/settings.json`)
+This is a sandbox/testing SBC, so settings are deliberately **loose to reduce friction**:
+- `defaultMode: "acceptEdits"` — file edits apply without prompting.
+- Broad `allow` list: `WebSearch`, `WebFetch`, the MCP servers (`mcp__markitdown`, `mcp__fetch`),
+  the HDL/Python/git/gh toolchain, common shell utils, and `apt`/`pip`/`npm` installs (incl. the
+  specific `sudo apt-get`/`sudo pip`/`sudo npm` install forms).
+- Focused `deny` list — the **only** hard guardrails protect the machine and the SSH link we
+  connect over: `sudo rm`, `rm -rf /` and `~`, shutdown/reboot, `dd`/`mkfs`, anything stopping or
+  reconfiguring `ssh`/`sshd`, firewall (`ufw`/`iptables`) changes, `passwd`/`usermod`, and edits to
+  `/etc/ssh`, `~/.ssh`, `/etc/sudoers*`.
+- **Full bypass when needed:** launch with `claude --dangerously-skip-permissions` (or toggle
+  bypass mode in-session). Note bypass skips the `deny` guardrails too — so still avoid the
+  system/SSH operations listed above.
+- Machine-specific or secret overrides go in `.claude/settings.local.json` (gitignored).
+
 ## MCP servers (project scope)
 Config lives at **repo-root `.mcp.json`** — the path Claude Code auto-loads (the old
 `.claude/.mcp.json` was never read and has been removed). It is gitignored (Claude tooling, not
 part of the TT submission).
 
-Servers configured (both launched with `uvx`, so they need `uv`):
+Servers configured:
 - **markitdown** → `uvx markitdown-mcp` — convert docs/HTML/PDF/Office → terse Markdown (token-efficient ingestion).
 - **fetch** → `uvx mcp-server-fetch` — fetch web pages as Markdown.
+- **superpowers** → `/home/orangepi/.local/bin/node /home/orangepi/.local/bin/superpowers-mcp`
+  (already installed via nvm node v24.17.0) — exposes the Superpowers skills/tools over MCP. This
+  is an alternative/complement to installing the Superpowers **plugin** via `/plugin`; you likely
+  don't need both. Absolute paths are used because `.mcp.json` is machine-specific (gitignored).
+
+The `uvx`-based servers need `uv` installed (below).
 
 Install `uv` (provides `uvx`) if missing:
 ```bash
