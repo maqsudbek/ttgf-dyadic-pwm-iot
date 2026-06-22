@@ -21,3 +21,6 @@ test/gate_level_netlist.v
 
 # TT support-tools (cloned locally for hardening; provided by devcontainer/CI, not committed)
 /tt/
+
+# Downloaded CI artifacts (large GDS/STA logs; keep reports in .md, not the raw dumps)
+.claude/harden/run12/

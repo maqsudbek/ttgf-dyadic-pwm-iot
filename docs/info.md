@@ -46,6 +46,13 @@ After reset the design defaults to **8-bit Normal** PWM (dyadic_len=0), so it be
 6-cycle / 120 ns dead-time), `uo_out[2]`=sync clock, `uo_out[7:3]`=duty MSBs (debug, normalised to
 the 9-bit domain). All `uio` pins are inputs.
 
+**Clock / timing.** The design targets a **50 MHz** clock and meets timing at the typical and fast
+process corners in post-layout STA (≈ +3.7 ns and +10.6 ns setup slack; hold met at all corners).
+At the worst-case slow corner (125 °C, 3.0 V) the longest path — the width-scaled duty computation
+that feeds the duty comparator — does not close 50 MHz, so for operation guaranteed across all
+corners use roughly **≤ 30 MHz** (the RP2040 supplies the clock and is adjustable 1 Hz–~66 MHz).
+The PWM switching frequency is `clk / 513`, so it scales with whatever clock you choose.
+
 ## How to test
 
 1. Hold `rst_n` low for several clocks, then release. With no configuration the design is an 8-bit

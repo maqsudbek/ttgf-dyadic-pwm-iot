@@ -9,14 +9,17 @@ Later goal: integrate a **two-wire data modulator/demodulator** for IoT into the
 [src/dyadic.v](../src/dyadic.v)). Implements selectable 5/6/7/8/9-bit PWM, Normal + Dyadic + 3
 dithering modes + constant dyadic word, loaded via a config-register interface (`uio_in[7]` = run/config
 strobe). `info.yaml`, `test/`, `docs/info.md` updated. Plan: [.claude/plans/02-port-dyadic-to-gf26a-plan.md](plans/02-port-dyadic-to-gf26a-plan.md).
-- **Verification (session 03):** `run-tests` = **10/10 green**; `tt-compliance-check` = **clean**.
-  **Tile-fit / timing still unconfirmed.** `local-harden` is impractical on this aarch64 host
-  (no LibreLane/PDK; x86_64-first EDA stack) → using the canonical **`gds` GitHub workflow** as the
-  gate. Found & fixed the reason CI never hardened: a stale submodule gitlink at
-  `.claude/olddyadic/digital_dyadic_pwm` (no `.gitmodules`) was aborting `actions/checkout`.
-  De-submoduled (now normal files). **Next:** push to `origin/test` → read the fresh `gds` run for
-  1×1 fit + 50 MHz timing + `gl_test`. If it fails to fit/close, fall back to the IHP fixed-8-bit
-  design in [.claude/olddyadic/](olddyadic/README.md). Details: [.claude/harden/03-harden-report.md](harden/03-harden-report.md).
+**Hardened & verified (session 03).** `run-tests` = **10/10 green**; `tt-compliance-check` = **clean**;
+**`gds` run #12 (commit `847a0fc`) = ALL GREEN** → **fits the 1×1 GF180MCU tile** (45.5% util), passes
+**precheck** (DRC/antenna/pin/boundary) and **gl_test**. STA read via `gh` from run artifacts:
+**typical & fast corners meet 50 MHz** (+3.7 / +10.6 ns), **slow corner fails** (−13.2 ns, 52 reg→reg
+paths on the ~30-level width-scaling duty datapath); hold clean (+0.52 ns). **User decision:**
+typical-corner 50 MHz is good enough, slow corner ok to fail — **no pipelining, no IHP fallback**;
+`docs/info.md` carries an honest derate note (all-corner Fmax ≈ 30 MHz). `local-harden` was
+impractical on this aarch64 host so CI is the gate; a stale submodule gitlink at
+`.claude/olddyadic/digital_dyadic_pwm` (aborting checkout in run #11) was de-submoduled.
+Details: [.claude/harden/03-harden-report.md](harden/03-harden-report.md).
+Next milestone (not started): two-wire IoT modulator/demodulator on leftover pins.
 
 ## Hard constraints (TinyTapeout)
 - Top module name must start with `tt_um_`; fixed interface: `ui_in[8]`, `uo_out[8]`,

@@ -19,16 +19,26 @@ Running list of questions and their answers as they get resolved. Add new ones a
   (<https://tinytapeout.com/faq/#how-can-i-map-an-additional-external-clock-to-one-of-the-gpios>).
   The old design assumed 50 MHz → ~97.5 kHz switching; switching freq scales with `clk`.
 
+## Answered (session 03, cont.)
+- **Does the full feature set fit the 1×1 GF180MCU tile?** **YES.** After fixing a CI blocker (stale
+  submodule gitlink at `.claude/olddyadic/digital_dyadic_pwm` with no `.gitmodules`, which aborted
+  `actions/checkout` on run #11), the `gds` workflow run **#12** (commit `847a0fc`) is **all green**:
+  Build GDS (place+route+GDS, i.e. fits 1×1), precheck (DRC/antenna/pin/boundary), gl_test
+  (gate-level functional), viewer/docs/test. `local-harden` was impractical on the aarch64 host;
+  CI is the authoritative x86_64 gate. See `.claude/harden/03-harden-report.md`.
+
+- **Does it close timing at 50 MHz?** **Partly — resolved/accepted.** Post-PnR STA (run #12
+  artifacts, read via `gh`): **typical & fast corners meet** (+3.7 / +10.6 ns setup); **slow corner
+  fails** (−13.2 ns, 52 reg→reg paths). Hold clean everywhere (+0.52 ns). Critical path = ~30-level
+  width-scaling duty datapath (`dyadic_len`→`duty_compare`). **User decision:** normal-case (typical
+  50 MHz) is good enough, slow corner ok to fail — no pipelining, no IHP fallback. Documented:
+  guaranteed-all-corners Fmax ≈ 30 MHz; `docs/info.md` carries an honest derate note. Full numbers:
+  `.claude/harden/03-harden-report.md`.
+
 ## Open
-- **Does the full feature set fit the 1×1 GF180MCU tile and close timing at 50 MHz?** Still
-  unconfirmed. Session 03: `local-harden` is impractical on the aarch64 OrangePi host (no `tt/`,
-  LibreLane or PDK; EDA stack is x86_64-first). Pivoted (user-approved) to the canonical **`gds`
-  GitHub workflow**, which is the real gate. **Blocker found & fixed:** the `gds` run on HEAD
-  `0298d58` (run #11) failed at *checkout* — a stale submodule gitlink at
-  `.claude/olddyadic/digital_dyadic_pwm` with no `.gitmodules` aborted `actions/checkout`
-  (`submodules: recursive`), so `Build GDS` never ran. De-submoduled it (now normal tracked
-  files); awaiting push to trigger a real harden. See `.claude/harden/03-harden-report.md`.
-  If the fresh run shows no-fit/timing-fail, fall back to the IHP fixed-8-bit design.
+- **GitHub username** in `tt_um_maqsudbek_dyadic_pwm`: **confirmed `maqsudbek`** (user, session 03).
+- **Future true-50 MHz option (not now):** pipeline the `scaled`/`duty_compare` datapath (changes
+  only per control-word update / per 2^m window → ~free) to close the slow corner with full features.
 - Any GF180MCU-specific timing or cell constraints that affect the async-reset style or dead-time?
 - Future two-wire data modem: map onto leftover pins later (user: not now — PWM takes pins as needed).
 - Confirm the GitHub username embedded in `tt_um_maqsudbek_dyadic_pwm` is the intended unique tag.
