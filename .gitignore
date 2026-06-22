@@ -11,3 +11,13 @@ test/sim_build
 test/__pycache__/
 test/results.xml
 test/gate_level_netlist.v
+
+# Claude Code tooling (not part of the TT submission set)
+.mcp.json
+.claude/settings.local.json
+
+# Python virtual environment (local dev only)
+.venv/
+
+# TT support-tools (cloned locally for hardening; provided by devcontainer/CI, not committed)
+/tt/
