@@ -38,7 +38,9 @@
 
 * In TinyTapeout shuttle `GF26a`, and its dev module, what is the maximum frequency of clock signal that already exist out of the box, and what could be maximum if i provide from outside?
 
+- you can write your useful prompts for the next chat as handoff inside `.claude/prompts` folder as md file, with necessary claude code model (sonnet, opus and etc), effort level (high, medium, low, extra high and etc), wether thinking is on or off, and mode (ask, plan, auto, bypass and etc). We use both Claude code CLI and vscode extension of claude code.
 
+- you can store the plan md files inside `.claude/plans` folder, it will be important when starting in new chat sessions.
 
 ### Environment
 
@@ -57,3 +59,4 @@
 
 - `.claude/.mcp.json` file contains MCP servers and their settings that is specific for this project. It is used by the claude code cli. - also use plugin or tools like MarkItDown, SuperPowers and etc... to help us to use Claude Code CLI more effectively, more correctly, in more token efficient way.
 
+- We are using vscode, we remotely connected to this "Orangepi" board using "Vscode Remote Explorer", our main working machine is actually Windows 11 Laptop, however, all the work is done in this "Orangepi" board.
