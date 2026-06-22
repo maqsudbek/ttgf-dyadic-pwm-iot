@@ -11,18 +11,23 @@ the `gds` GitHub workflow does the same on push.
 
 Official guide: <https://www.tinytapeout.com/guides/local-hardening/>
 
-## Prereqs
-- Docker (or the TT support tools env). The PDK here is **GF180MCU** (not sky130/IHP).
-- The TT support tools provide a `tt_tool.py` harden entrypoint. The `.devcontainer/` in this repo
-  sets up the expected environment.
+## Prereqs (use the devcontainer)
+- The intended environment is this repo's **`.devcontainer/`** (docker-in-docker, 10 GB). On start it
+  runs `copy_tt_support_tools.sh`, which provides the **`tt/`** support-tools dir (so `tt/tt_tool.py`
+  exists). On the bare OrangePi host there is no `tt/` until you set the support tools up.
+- Local hardening needs **LibreLane** installed; PDK is **GF180MCU** (`gf180mcuD`), not sky130/IHP.
 
-## Typical flow
+## Flow
+The TT docs state: *"if you have LibreLane installed locally, you can harden the design with
+`--harden`"* — confirmed flag; other `tt_tool.py` subcommands exist (datasheet/SVG/PNG renders,
+config) but check `tt/tt_tool.py --help` for exact names rather than guessing.
 ```bash
-# inside the TT tools env / devcontainer
-./tt/tt_tool.py --harden          # runs LibreLane on src/ using info.yaml + src/config.json
-./tt/tt_tool.py --create-png      # optional render
+# inside the devcontainer / TT tools env
+tt/tt_tool.py --help     # discover available subcommands first
+tt/tt_tool.py --harden   # runs LibreLane on src/ using info.yaml + src/config.json
 ```
 Outputs land under `runs/` (gitignored). Inspect logs for GPL/DRC/timing errors.
+On push, the `gds` GitHub workflow (`tt-gds-action@ttgf26a`, `pdk: gf180mcuD`) runs the same flow.
 
 ## When it fails
 - `GPL-0302` global placement → raise `PL_TARGET_DENSITY_PCT` in `src/config.json` (up to ~80).

@@ -92,15 +92,15 @@
       "Bash(passwd:*)",
       "Bash(sudo passwd:*)",
       "Bash(sudo usermod:*)",
-      "Edit(/etc/ssh/**)",
-      "Write(/etc/ssh/**)",
-      "Read(/home/orangepi/.ssh/**)",
-      "Edit(/home/orangepi/.ssh/**)",
-      "Write(/home/orangepi/.ssh/**)",
-      "Edit(/etc/sudoers)",
-      "Write(/etc/sudoers)",
-      "Edit(/etc/sudoers.d/**)",
-      "Write(/etc/sudoers.d/**)"
+      "Edit(//etc/ssh/**)",
+      "Write(//etc/ssh/**)",
+      "Read(~/.ssh/**)",
+      "Edit(~/.ssh/**)",
+      "Write(~/.ssh/**)",
+      "Edit(//etc/sudoers)",
+      "Write(//etc/sudoers)",
+      "Edit(//etc/sudoers.d/**)",
+      "Write(//etc/sudoers.d/**)"
     ]
   }
 }

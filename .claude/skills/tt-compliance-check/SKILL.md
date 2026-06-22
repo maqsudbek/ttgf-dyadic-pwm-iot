@@ -19,9 +19,12 @@ Run through this before any commit/push. Fail = fix before proceeding.
 ## Metadata / files
 - [ ] `info.yaml`: `top_module` matches RTL; `source_files` lists every `src/*.v`; `tiles` set;
       `clock_hz` set; `yaml_version: 6`; pinout descriptions filled.
+- [ ] `info.yaml` pinout keeps **all 24 pin entries** (ui/uo/uio ×8) — do **not** add or remove pins;
+      leave unused ones blank.
 - [ ] `test/Makefile` `PROJECT_SOURCES` matches `info.yaml` `source_files`.
+- [ ] `test/tb.v` instantiates the **renamed top module** (the template ships `tt_um_example`).
 - [ ] `docs/info.md`: "How it works", "How to test", "External hardware" all filled (no template
-      placeholder text).
+      placeholder text — the `<!--- ... --->` comment block and stock prompts removed).
 
 ## Do NOT edit (auto-fail / breaks the flow)
 - [ ] `src/config.json` left as provided (only `CLOCK_PERIOD` may be tuned if justified).

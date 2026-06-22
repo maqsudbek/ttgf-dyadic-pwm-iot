@@ -14,8 +14,10 @@ source .venv/bin/activate
 cd test
 make            # default SIM=icarus; builds with iverilog and runs test.py
 ```
-Results: `test/results.xml` (pass/fail), waveforms in `test/tb.fst` (open with `gtkwave`).
-Clean rebuild: `make clean && make`. Gate-level sim: `make GATES=yes` (needs the GF180MCU PDK).
+Results: `test/results.xml` (pass/fail). `tb.v` dumps `test/tb.fst` — view with **gtkwave**
+(save file `test/tb.gtkw` provided) or **Surfer** (the devcontainer ships the Surfer extension).
+Clean rebuild: `make clean && make`. Gate-level sim: `make GATES=yes` (needs the GF180MCU PDK +
+the post-harden `gate_level_netlist.v`; GL power ports are `VPWR`/`VGND`).
 
 ## Prerequisites
 - Python deps live in the project **`.venv`** (already created): `cocotb==2.0.1`, `pytest==8.4.2`
