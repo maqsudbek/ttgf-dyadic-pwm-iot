@@ -20,8 +20,15 @@ Running list of questions and their answers as they get resolved. Add new ones a
   The old design assumed 50 MHz → ~97.5 kHz switching; switching freq scales with `clk`.
 
 ## Open
-- **Does the full feature set fit the 1×1 GF180MCU tile and close timing at 50 MHz?** Confirm with
-  `local-harden`. If not, fall back to the IHP fixed-8-bit normal/dyadic design (user-approved fallback).
+- **Does the full feature set fit the 1×1 GF180MCU tile and close timing at 50 MHz?** Still
+  unconfirmed. Session 03: `local-harden` is impractical on the aarch64 OrangePi host (no `tt/`,
+  LibreLane or PDK; EDA stack is x86_64-first). Pivoted (user-approved) to the canonical **`gds`
+  GitHub workflow**, which is the real gate. **Blocker found & fixed:** the `gds` run on HEAD
+  `0298d58` (run #11) failed at *checkout* — a stale submodule gitlink at
+  `.claude/olddyadic/digital_dyadic_pwm` with no `.gitmodules` aborted `actions/checkout`
+  (`submodules: recursive`), so `Build GDS` never ran. De-submoduled it (now normal tracked
+  files); awaiting push to trigger a real harden. See `.claude/harden/03-harden-report.md`.
+  If the fresh run shows no-fit/timing-fail, fall back to the IHP fixed-8-bit design.
 - Any GF180MCU-specific timing or cell constraints that affect the async-reset style or dead-time?
 - Future two-wire data modem: map onto leftover pins later (user: not now — PWM takes pins as needed).
 - Confirm the GitHub username embedded in `tt_um_maqsudbek_dyadic_pwm` is the intended unique tag.
