@@ -1,5 +1,17 @@
 name: test
-on: [push, workflow_dispatch]
+on:
+  push:
+    # Skip the cocotb run for changes that can't affect the RTL/testbench.
+    paths-ignore:
+      - '.claude/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.vscode/**'
+      - '.devcontainer/**'
+      - '.mcp.json'
+  workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-24.04
