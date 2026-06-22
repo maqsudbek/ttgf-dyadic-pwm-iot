@@ -2,6 +2,15 @@ name: docs
 
 on:
   push:
+    # docs/info.md and info.yaml still trigger; skip non-datasheet noise.
+    paths-ignore:
+      - '.claude/**'
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.vscode/**'
+      - '.devcontainer/**'
+      - '.mcp.json'
   workflow_dispatch:
 
 jobs:

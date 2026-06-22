@@ -74,3 +74,51 @@ The PWM switching frequency is `clk / 513`, so it scales with whatever clock you
 None required for bench testing. For power-electronics use, wire `uo_out[0]` (high-side) and
 `uo_out[1]` (low-side) to a half-bridge gate driver — the built-in dead-time prevents shoot-through
 in, e.g., a synchronous buck converter or class-D stage.
+
+## Post-layout results, expected behaviour & limits
+
+Hardened with LibreLane on **GF180MCU (`gf180mcuD`)**, 1×1 tile, target clock **50 MHz (20 ns)**.
+All numbers below are from the post-PnR multi-corner static timing analysis (8 corners).
+
+### Physical
+| Metric | Value |
+|---|---|
+| Tile utilization | **45.5 %** (fits 1×1 with margin) |
+| Standard cells | 1146 |
+| DRC / antenna / power-grid / LVS-pin violations | **0** |
+| Hold worst slack (all corners) | **+0.52 ns** — no hold risk |
+
+### Timing by corner (setup, 50 MHz)
+| Corner | Worst setup slack | Verdict |
+|---|---|---|
+| Typical (`tt`, 25 °C, 3.30 V) | **+3.73 ns** | meets 50 MHz |
+| Fast (`ff`, −40 °C, 3.60 V) | **+10.62 ns** | meets, large margin |
+| Slow (`ss`, 125 °C, 3.00 V) | **−13.22 ns** | **does not meet 50 MHz** |
+
+There are **52 violating register→register paths, only in the slow corner** (typical/fast = 0), plus
+minor drive-strength warnings in that corner (52 max-slew, 1 max-cap, 1 max-fanout). The single
+max-cap/max-fanout net persists across corners but is not a functional hazard.
+
+### What works, and where it can fail
+- **Functional correctness:** verified by the cocotb suite (10/10) and by the **gate-level** netlist
+  test (`gl_test`) on the post-layout cells — reset, all five widths (5–9-bit), max-duty saturation,
+  dead-time (no shoot-through), sync clock, dyadic mode, all three dithering modes, and the constant
+  dyadic word. All `uio` pins read as inputs.
+- **Critical path (the thing that limits Fmax):** the registered duty threshold `duty_compare` is
+  computed combinationally as `scaled = duty·2^(9−B) + offset` followed by the dyadic/dither `+1`
+  decision and the period comparison. This is ~30 logic levels deep (start: a `dyadic_len` register;
+  end: `duty_compare`). At the slow corner it needs ≈34 ns, hence the −13 ns miss at 20 ns.
+- **Expected operating envelope:**
+  - At **normal temperature/voltage (typical silicon): 50 MHz works** (+3.7 ns margin).
+  - For **guaranteed operation across all corners (hot 125 °C and/or low 3.0 V): use ≤ ~30 MHz.**
+  - Switching frequency is always `clk / 513` (≈ 97.5 kHz at 50 MHz; ≈ 58 kHz at 30 MHz).
+  - **Hold is met at every corner**, so there is no fast-corner/hold failure mode — only the
+    setup-vs-frequency trade-off above.
+- **Failure mode if over-clocked at a bad corner:** the duty threshold can be sampled before it
+  settles, producing an incorrect duty/edge for that period (functional glitch), not a hard hang —
+  drop the clock to recover. The dead-time logic is short and is not on the critical path, so
+  complementary-output non-overlap is preserved.
+
+> These limits are inherent to this (area-optimised, single-cycle datapath) build. A future revision
+> can register the `scaled`/`duty_compare` computation to close 50 MHz across all corners with the
+> full feature set.

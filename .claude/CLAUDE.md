@@ -34,7 +34,14 @@ Next milestone (not started): two-wire IoT modulator/demodulator on leftover pin
   *during* reset, not after release.
 - **AI artifacts live only in `.claude/`** (docs, notes, downloads). Never add them to the submission set.
 - MCP config is at **repo-root `.mcp.json`** (`markitdown`, `fetch`) — not `.claude/`
-- sudo password when needed absolutely: `HomeServer543@#`
+- **Secrets:** never put credentials in tracked files. Machine-local secrets (incl. the sudo
+  password) live in **`.claude/secrets.local.md`** (gitignored). Read it when a task truly needs
+  sudo; never echo secret values into logs/commits/output.
+- **CI is expensive:** the `gds`/`test`/`docs`/`fpga` workflows skip `.claude/**` and other
+  non-design paths via `paths-ignore` — don't undo that. Changes confined to `.claude/`, README,
+  or tooling must not trigger a hardening run.
+- **Branch hygiene:** `main` = clean submission only (no `.claude/`). `test` = staging that may
+  carry `.claude/`. Do not merge `.claude/` onto `main` (see the branch strategy in the active plan).
 
 ## Available project skills
 `run-tests` · `tt-compliance-check` · `dyadic-reference` · `local-harden`

@@ -16,6 +16,11 @@ test/gate_level_netlist.v
 .mcp.json
 .claude/settings.local.json
 
+# Local-only secrets (sudo password, tokens, …) — NEVER commit
+.claude/secrets.local.md
+.claude/*.local.md
+.claude/*.local.*
+
 # Python virtual environment (local dev only)
 .venv/
 
