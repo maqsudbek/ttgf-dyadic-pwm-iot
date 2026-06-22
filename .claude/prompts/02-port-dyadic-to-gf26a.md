@@ -11,14 +11,17 @@ reference index) was prepared in session 01 (see `.claude/plans/make-this-claude
 - **Mode:** Start in **Plan mode** (produce a port plan from `.claude/docs/porting-notes.md`, save it
   to `.claude/plans/`), then switch to normal/Auto edit mode to implement.
 - **Interface:** Claude Code CLI or VSCode extension — on first launch **approve the project MCP
-  servers** (`markitdown`, `fetch`) when prompted.
+  servers** (`markitdown`, `fetch`, `superpowers`) when prompted.
 
 ## Before you start (one-time, if not already done)
-- Approve MCP servers. Optionally confirm with `claude mcp list`.
-- Install Superpowers if desired (user runs the slash commands):
-  `/plugin marketplace add obra/superpowers-marketplace` then
-  `/plugin install superpowers@superpowers-marketplace`.
-- For local sim: `sudo apt-get install -y iverilog gtkwave` and `pip install --user cocotb`.
+- Approve the MCP servers. Optionally confirm with `claude mcp list`.
+- **Superpowers** is already wired as an MCP server in `.mcp.json` — no install needed. (Only if you
+  also want the slash-command *plugin*: `/plugin marketplace add obra/superpowers-marketplace` then
+  `/plugin install superpowers@superpowers-marketplace`.)
+- Python test deps are already in the project **`.venv`** (`cocotb==2.0.1`, `pytest==8.4.2`); the
+  only system install still needed for local sim is the simulator:
+  `sudo apt-get install -y iverilog gtkwave`. Run tests via the `run-tests` skill (it activates
+  `.venv` first). See `.claude/docs/tooling-setup.md` for details.
 
 ---
 
