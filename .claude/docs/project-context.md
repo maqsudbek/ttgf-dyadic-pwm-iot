@@ -9,10 +9,12 @@ After the deadline, all GF26a projects are combined into
 <https://github.com/TinyTapeout/tinytapeout-gf-26a>.
 
 ## Goal & scope
-1. **Now:** port and adapt a **digital Dyadic PWM generator** into this template, validate with
-   cocotb tests and the GDS flow.
-2. **Later:** integrate a **two-wire data modulator/demodulator** for IoT into the same project
-   (combined design). Out of scope until the dyadic PWM is solid.
+Port and adapt a **digital Dyadic PWM generator** into this template, validate with cocotb tests and
+the GDS flow, harden it to fit the 1×1 GF180MCU tile, and document it thoroughly.
+
+> **Note (session 04):** an earlier idea to add a **two-wire data modulator/demodulator for IoT** to
+> the same project was **dropped** — it will not be implemented. The project scope is the Dyadic PWM
+> only. (The repo directory keeps its historical `-iot` suffix; the name is not the scope.)
 
 ## Lineage of the design (three generations)
 1. **"Dyadic VHDL project"** — original, tested on a **DE1-SoC FPGA** in VHDL. Far larger than just

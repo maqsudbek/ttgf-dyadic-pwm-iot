@@ -48,4 +48,6 @@ deltas are in the build/PDK config and timing closure, not the RTL.
 ## Open design decisions for the port
 - Final `clk` frequency on GF26a (affects switching freq + `clock_hz`/`CLOCK_PERIOD`).
 - Whether to re-add any dithering modes or selectable PWM width now that this is a fresh start.
-- Where the future two-wire modulator/demodulator maps onto remaining pins.
+
+> The future two-wire modulator/demodulator was **dropped** (session 04) — no longer a pin-budget
+> consideration.

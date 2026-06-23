@@ -40,5 +40,8 @@ Running list of questions and their answers as they get resolved. Add new ones a
 - **Future true-50 MHz option (not now):** pipeline the `scaled`/`duty_compare` datapath (changes
   only per control-word update / per 2^m window → ~free) to close the slow corner with full features.
 - Any GF180MCU-specific timing or cell constraints that affect the async-reset style or dead-time?
-- Future two-wire data modem: map onto leftover pins later (user: not now — PWM takes pins as needed).
 - Confirm the GitHub username embedded in `tt_um_maqsudbek_dyadic_pwm` is the intended unique tag.
+
+## Resolved / dropped
+- **Two-wire IoT data modem (DROPPED, session 04):** will not be implemented. Project scope is the
+  Dyadic PWM only; IoT references removed from README + live docs.

@@ -1,7 +1,7 @@
 # ttgf-dyadic-pwm-iot
 
 A **Dyadic PWM generator** for **TinyTapeout GF26a** (GlobalFoundries **GF180MCU**, 1×1 digital tile).
-Later goal: integrate a **two-wire data modulator/demodulator** for IoT into the same project.
+Scope is the Dyadic PWM only — the previously-considered two-wire IoT modem was **dropped** (session 04).
 
 ## Status
 **Ported (session 02).** Full-feature Dyadic PWM is in the submission set: top module
@@ -19,7 +19,11 @@ typical-corner 50 MHz is good enough, slow corner ok to fail — **no pipelining
 impractical on this aarch64 host so CI is the gate; a stale submodule gitlink at
 `.claude/olddyadic/digital_dyadic_pwm` (aborting checkout in run #11) was de-submoduled.
 Details: [.claude/harden/03-harden-report.md](harden/03-harden-report.md).
-Next milestone (not started): two-wire IoT modulator/demodulator on leftover pins.
+**Docs finished (session 04).** The two-wire IoT milestone was **dropped** (will not be built);
+IoT references removed from README/CLAUDE/live docs. Added detailed user docs:
+[docs/architecture.md](../docs/architecture.md) (internals) + [docs/usage.md](../docs/usage.md)
+(post-tapeout operation on the TT demo board). Plan:
+[.claude/plans/04-remove-iot-and-document.md](plans/04-remove-iot-and-document.md).
 
 ## Hard constraints (TinyTapeout)
 - Top module name must start with `tt_um_`; fixed interface: `ui_in[8]`, `uo_out[8]`,
@@ -47,7 +51,8 @@ Next milestone (not started): two-wire IoT modulator/demodulator on leftover pin
 `run-tests` · `tt-compliance-check` · `dyadic-reference` · `local-harden`
 
 ## Where to read more (load on demand)
-- [.claude/docs/project-context.md](docs/project-context.md) — background, IoT scope, environment
+- [.claude/docs/project-context.md](docs/project-context.md) — background, scope, environment
+- [docs/architecture.md](../docs/architecture.md) · [docs/usage.md](../docs/usage.md) — internals + post-tapeout usage (user-facing)
 - [.claude/docs/gf26a-constraints.md](docs/gf26a-constraints.md) — shuttle facts, clock, links
 - [.claude/docs/porting-notes.md](docs/porting-notes.md) — IHP26a→GF26a port checklist + reference index
 - [.claude/docs/open-questions.md](docs/open-questions.md) — running Q&A log
