@@ -4,12 +4,11 @@
 
 A configurable **digital PWM (DPWM) generator** with **dyadic modulation** and **dithering**,
 hardened for the **TinyTapeout GF26a** shuttle on the GlobalFoundries **GF180MCU** PDK (single
-1×1 digital tile). A later milestone adds a **two-wire data modulator/demodulator** for IoT use on
-the leftover pins.
+1×1 digital tile).
 
 - **Top module:** `tt_um_maqsudbek_dyadic_pwm` ([src/project.v](src/project.v)) wrapping the core
   `dyadic_pwm` ([src/dyadic.v](src/dyadic.v)).
-- **Datasheet / full details:** [docs/info.md](docs/info.md).
+- **Datasheet:** [docs/info.md](docs/info.md) · **Architecture:** [docs/architecture.md](docs/architecture.md) · **Usage guide:** [docs/usage.md](docs/usage.md).
 - **PDK / tile:** GF180MCU (`gf180mcuD`), 1×1 tile. **Clock:** board RP2040, 1 Hz – ~66 MHz.
 
 ## What it does
@@ -23,7 +22,15 @@ the leftover pins.
 
 Dyadic mode distributes the lower `m` bits of the control word as a `+1` sequence across a
 `2^m`-period window, raising the *effective* resolution by up to ~7 bits without widening the base
-counter. See [docs/info.md](docs/info.md) for the pin map, config registers, and how-to-test.
+counter.
+
+## Documentation
+
+| Document | What's in it |
+|---|---|
+| [docs/info.md](docs/info.md) | TinyTapeout **datasheet** — pin map, config registers, how-to-test, post-layout results |
+| [docs/architecture.md](docs/architecture.md) | **How it works inside** — block diagram, datapath, every sub-block, the duty-scaling math, the critical path |
+| [docs/usage.md](docs/usage.md) | **How to drive it after tapeout** — TinyTapeout demo board (MicroPython/Commander), config recipes, waveforms, half-bridge wiring |
 
 ## Implementation status
 
@@ -54,7 +61,7 @@ clock). Hold is met everywhere.
 |---|---|
 | `src/` | RTL (`project.v` top wrapper, `dyadic.v` core) + `config.json` (LibreLane) — submission set |
 | `test/` | cocotb testbench (`tb.v`, `test.py`, `Makefile`) |
-| `docs/info.md` | project datasheet |
+| `docs/` | datasheet (`info.md`), architecture (`architecture.md`), usage guide (`usage.md`) |
 | `info.yaml` | TinyTapeout metadata (top module, sources, pinout, clock) |
 | `.github/workflows/` | TT CI (`gds`, `test`, `docs`, `fpga`) |
 
