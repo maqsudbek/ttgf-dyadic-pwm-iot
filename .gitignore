@@ -23,6 +23,7 @@ test/gate_level_netlist.v
 
 # Python virtual environment (local dev only)
 .venv/
+pics/.venv/
 
 # TT support-tools (cloned locally for hardening; provided by devcontainer/CI, not committed)
 /tt/

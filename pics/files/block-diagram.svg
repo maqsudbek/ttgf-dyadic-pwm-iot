@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700"
+     width="1000" height="700" style="background:#0d1117;font-family:monospace">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#ffffff88"/>
+    </marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="500" y="30" text-anchor="middle" fill="white" font-size="18" font-weight="bold">
+    Dyadic PWM — Functional Block Diagram</text>
+  <text x="500" y="48" text-anchor="middle" fill="#888" font-size="10">
+    GF180MCU · TinyTapeout GF-26a · tt_um_maqsudbek_dyadic_pwm</text>
+
+  <!-- Boundary box: tt_um wrapper -->
+  <rect x="30" y="60" width="940" height="580" rx="8" fill="none"
+        stroke="#aa44cc" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="45" y="80" fill="#aa44cc" font-size="11">tt_um_maqsudbek_dyadic_pwm (project.v)</text>
+
+  <!-- Input ports -->
+  <rect x="40" y="100" width="110" height="30" rx="5" fill="#3355cc"/>
+  <text x="95" y="120" text-anchor="middle" fill="white" font-size="11">clk</text>
+  <rect x="170" y="100" width="110" height="30" rx="5" fill="#3355cc"/>
+  <text x="225" y="120" text-anchor="middle" fill="white" font-size="11">rst_n</text>
+  <rect x="300" y="100" width="110" height="30" rx="5" fill="#3355cc"/>
+  <text x="355" y="120" text-anchor="middle" fill="white" font-size="11">ena</text>
+  <rect x="430" y="100" width="130" height="30" rx="5" fill="#448844"/>
+  <text x="495" y="120" text-anchor="middle" fill="white" font-size="11">ui_in[7:0]</text>
+
+  <!-- Output ports -->
+  <rect x="40" y="600" width="130" height="30" rx="5" fill="#cc6633"/>
+  <text x="105" y="620" text-anchor="middle" fill="white" font-size="11">uo_out[7:0]</text>
+  <rect x="190" y="600" width="130" height="30" rx="5" fill="#cc6633"/>
+  <text x="255" y="620" text-anchor="middle" fill="white" font-size="11">uio_out[7:0]</text>
+  <rect x="340" y="600" width="150" height="30" rx="5" fill="#cc6633"/>
+  <text x="415" y="620" text-anchor="middle" fill="white" font-size="11">pwm_out / pwm_n</text>
+
+  <!-- dyadic_pwm core boundary -->
+  <rect x="560" y="80" width="400" height="540" rx="6" fill="none"
+        stroke="#33aa66" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="575" y="98" fill="#33aa66" font-size="10">dyadic_pwm (dyadic.v)</text>
+
+  <!-- Internal blocks -->
+  <rect x="580" y="120" width="170" height="90" rx="6" fill="#1a3a1a" stroke="#ffffff22"/>
+  <text x="665" y="148" text-anchor="middle" fill="white" font-size="9">Config Register File</text>
+  <text x="665" y="163" text-anchor="middle" fill="#aaa" font-size="8">duty · mode · dyadic_word</text>
+  <text x="665" y="178" text-anchor="middle" fill="#aaa" font-size="8">addr 0/1/2</text>
+
+  <rect x="580" y="240" width="170" height="70" rx="6" fill="#1a3a1a" stroke="#ffffff22"/>
+  <text x="665" y="268" text-anchor="middle" fill="white" font-size="9">10-bit PWM Counter</text>
+  <text x="665" y="283" text-anchor="middle" fill="#aaa" font-size="8">0 → 512</text>
+
+  <rect x="780" y="200" width="160" height="70" rx="6" fill="#1a3a1a" stroke="#ffffff22"/>
+  <text x="860" y="228" text-anchor="middle" fill="white" font-size="9">7-bit Dyadic Counter</text>
+  <text x="860" y="243" text-anchor="middle" fill="#aaa" font-size="8">+ HSB function</text>
+
+  <rect x="780" y="120" width="160" height="55" rx="6" fill="#1a3a1a" stroke="#ffffff22"/>
+  <text x="860" y="142" text-anchor="middle" fill="white" font-size="9">Mode Decode</text>
+  <text x="860" y="157" text-anchor="middle" fill="#aaa" font-size="8">5/6/7/8/9-bit</text>
+
+  <rect x="580" y="360" width="170" height="55" rx="6" fill="#1a3a1a" stroke="#ffffff22"/>
+  <text x="665" y="382" text-anchor="middle" fill="white" font-size="9">Dither Logic</text>
+  <text x="665" y="397" text-anchor="middle" fill="#aaa" font-size="8">Normal / Dyadic / Dither3</text>
+
+  <rect x="780" y="360" width="160" height="55" rx="6" fill="#1a3a1a" stroke="#ffffff22"/>
+  <text x="860" y="382" text-anchor="middle" fill="white" font-size="9">Duty Compare</text>
+  <text x="860" y="397" text-anchor="middle" fill="#aaa" font-size="8">duty ≥ counter</text>
+
+  <rect x="580" y="460" width="170" height="55" rx="6" fill="#1a3a1a" stroke="#ffffff22"/>
+  <text x="665" y="482" text-anchor="middle" fill="white" font-size="9">Duty Scaling</text>
+  <text x="665" y="497" text-anchor="middle" fill="#aaa" font-size="8">to 513-cycle period</text>
+
+  <rect x="780" y="460" width="160" height="55" rx="6" fill="#1a3a1a" stroke="#ffffff22"/>
+  <text x="860" y="482" text-anchor="middle" fill="white" font-size="9">PWM Generator</text>
+  <text x="860" y="497" text-anchor="middle" fill="#aaa" font-size="8">+ Dead-time</text>
+
+  <!-- Arrows -->
+  <line x1="150" y1="130" x2="580" y2="150" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="280" y1="130" x2="580" y2="250" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="750" y1="165" x2="780" y2="148" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="750" y1="200" x2="780" y2="235" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="750" y1="200" x2="780" y2="148" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="750" y1="387" x2="780" y2="387" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="665" y1="310" x2="665" y2="360" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="860" y1="270" x2="860" y2="360" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="860" y1="415" x2="860" y2="460" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="665" y1="415" x2="665" y2="460" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="750" y1="487" x2="780" y2="487" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="860" y1="515" x2="860" y2="600" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="665" y1="515" x2="665" y2="600" stroke="#ffffff66" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="40" y="200" width="140" height="120" rx="5" fill="#ffffff08" stroke="#ffffff22"/>
+  <text x="110" y="218" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Legend</text>
+  <rect x="50" y="228" width="14" height="10" rx="2" fill="#3355cc"/>
+  <text x="72" y="237" fill="#aaa" font-size="8">Input</text>
+  <rect x="50" y="248" width="14" height="10" rx="2" fill="#cc6633"/>
+  <text x="72" y="257" fill="#aaa" font-size="8">Output</text>
+  <rect x="50" y="268" width="14" height="10" rx="2" fill="#1a3a1a"/>
+  <text x="72" y="277" fill="#aaa" font-size="8">Internal block</text>
+  <rect x="50" y="288" width="14" height="10" rx="2" fill="none" stroke="#aa44cc"/>
+  <text x="72" y="297" fill="#aaa" font-size="8">TT wrapper</text>
+</svg>
