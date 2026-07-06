@@ -31,6 +31,7 @@ counter.
 | [docs/info.md](docs/info.md) | TinyTapeout **datasheet** — pin map, config registers, how-to-test, post-layout results |
 | [docs/architecture.md](docs/architecture.md) | **How it works inside** — block diagram, datapath, every sub-block, the duty-scaling math, the critical path |
 | [docs/usage.md](docs/usage.md) | **How to drive it after tapeout** — TinyTapeout demo board (MicroPython/Commander), config recipes, waveforms, half-bridge wiring |
+| [docs/viewing.md](docs/viewing.md) | **Interactive viewing** — browse the layout layer-by-layer (KLayout), the schematic, the floorplan/routing (OpenROAD GUI), and simulation waveforms (GTKWave) for your own report figures |
 
 ## Implementation status
 
