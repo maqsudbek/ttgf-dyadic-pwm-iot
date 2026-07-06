@@ -3,10 +3,6 @@
 Generated programmatically from the hardened GF180MCU GDS, Verilog RTL, and simulation data.
 All outputs are self-contained in this `pics/` directory. No project source files were modified.
 
-> Want to explore the design interactively yourself (toggle layers, zoom, measure, browse
-> waveforms) instead of only viewing these static images? See
-> [docs/viewing.md](../docs/viewing.md).
-
 **Design:** `tt_um_maqsudbek_dyadic_pwm` · **Shuttle:** TinyTapeout GF-26a · **PDK:** GF180MCU (180nm)  
 **Tile:** 1×1 · **Utilization:** 45.5% · **Fmax (typical):** 50 MHz · **All-corner Fmax:** ~30 MHz
 
