@@ -120,6 +120,42 @@ module dyadic_pwm (
         endcase
     end
 
+    // Values derived from the configuration only. They are registered, so the
+    // per-period datapath below starts from flip-flops (timing at 50 MHz). A
+    // configuration change takes effect one clock later.
+    wire [4:0] used_bits = {1'b0, pwm_bits} + {2'b0, dyadic_len};
+    wire [7:0] len_mask8 = (8'd1 << dyadic_len) - 8'd1;
+    wire [3:0] fshift4   = 4'd9 - pwm_bits;
+
+    reg [3:0] shift_amt;    // 12 - B: base duty = top B control bits
+    reg [3:0] lsb_shift;    // position of the m dither bits (below the B MSBs)
+    reg [6:0] len_mask;     // low m bits set
+    reg [2:0] dy_top;       // m - 1
+    reg [2:0] fshift;       // 9 - B: scale factor = 2^fshift
+    reg [3:0] offset;       // max(1, factor/2)
+    reg [9:0] duty_cap;     // 2^B - 1
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            shift_amt <= 4'd4;       // reset values = default 8-bit, m = 0
+            lsb_shift <= 4'd4;
+            len_mask  <= 7'd0;
+            dy_top    <= 3'd7;
+            fshift    <= 3'd1;
+            offset    <= 4'd1;
+            duty_cap  <= 10'd255;
+        end else begin
+            shift_amt <= 4'd12 - pwm_bits;                          // 3..7
+            // If B + m > 12, the dither bits are the lowest m bits (as dpwm.vhd)
+            lsb_shift <= (used_bits <= 5'd12) ? (4'd12 - used_bits[3:0]) : 4'd0;
+            len_mask  <= len_mask8[6:0];
+            dy_top    <= dyadic_len - 3'd1;
+            fshift    <= fshift4[2:0];                              // 0..4
+            offset    <= (pwm_bits == 4'd9) ? 4'd1 : (4'd1 << (4'd8 - pwm_bits));
+            duty_cap  <= (10'd1 << pwm_bits) - 10'd1;
+        end
+    end
+
     // =========================================================================
     // Timing counters
     // =========================================================================
@@ -142,8 +178,10 @@ module dyadic_pwm (
             dyadic_counter <= dyadic_counter + 1'b1;
     end
 
-    wire [6:0] len_mask    = (8'd1 << dyadic_len) - 8'd1;   // low m bits set
-    wire [6:0] sel_counter = dyadic_counter & len_mask;     // m-bit counter value
+    // m-bit counter value and its derived values, registered from the next
+    // counter value, so they are valid in the first clock of each period.
+    wire [6:0] dyc_next = (ena && sw_cycle_start) ? (dyadic_counter + 1'b1) : dyadic_counter;
+    wire [6:0] sel_next = dyc_next & len_mask;
 
     // Lowest set bit position of sel_counter (0 when counter == 0). The dyadic
     // priority MUX selects data bit m-1-k for the lowest set bit k, so the MSB
@@ -162,19 +200,33 @@ module dyadic_pwm (
             else           lsb7 = 3'd0;
         end
     endfunction
-    wire [2:0] dy_idx = dyadic_len - 3'd1 - lsb7(sel_counter);   // m-1-k
+
+    reg [6:0] sel_counter;   // m-bit counter value
+    reg [2:0] dy_idx;        // m-1-k
+    reg       sel_zero;      // sel_counter == 0
+    reg       sel_one;       // sel_counter == 1
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            sel_counter <= 7'd0;
+            dy_idx      <= 3'd0;
+            sel_zero    <= 1'b1;
+            sel_one     <= 1'b0;
+        end else begin
+            sel_counter <= sel_next;
+            dy_idx      <= dy_top - lsb7(sel_next);
+            sel_zero    <= (sel_next == 7'd0);
+            sel_one     <= (sel_next == 7'd1);
+        end
+    end
 
     // =========================================================================
     // Control word decomposition
     // =========================================================================
     // Base duty = top B bits of the control word.
-    wire [3:0] shift_amt = 4'd12 - pwm_bits;            // 3..7
     wire [8:0] base_duty = control_word >> shift_amt;   // up to 9 bits
 
     // LSB word = the m control bits directly below the B MSBs (as dpwm.vhd).
     // If B + m > 12, these are the lowest m bits (they overlap the MSBs).
-    wire [4:0] used_bits  = {1'b0, pwm_bits} + {2'b0, dyadic_len};
-    wire [3:0] lsb_shift  = (used_bits <= 5'd12) ? (4'd12 - used_bits[3:0]) : 4'd0;
     wire [13:0] cw_ext    = {2'b00, control_word};            // shift <= 7, so +:7 stays in range
     wire [6:0] lsb_value  = cw_ext[lsb_shift +: 7] & len_mask;
     wire [6:0] word_value = dyadic_word        & len_mask;
@@ -186,8 +238,8 @@ module dyadic_pwm (
     reg [6:0] lsb_latch;   // LSB held across a 2^m window
     reg [8:0] msb_latch;   // base duty held across a 2^m window
 
-    wire [6:0] eff_lsb = (sel_counter == 7'd1) ? lsb_value : lsb_latch;
-    wire [8:0] eff_msb = (sel_counter == 7'd1) ? base_duty : msb_latch;
+    wire [6:0] eff_lsb = sel_one ? lsb_value : lsb_latch;
+    wire [8:0] eff_msb = sel_one ? base_duty : msb_latch;
 
     // =========================================================================
     // Added-bit / effective-base selection per mode
@@ -201,7 +253,7 @@ module dyadic_pwm (
         if (dyadic_len != 3'd0) begin
             case (dpwm_mode)
                 3'd1: // Dyadic
-                    add_bit = (sel_counter == 7'd0) ? 1'b0 : src_word[dy_idx];
+                    add_bit = sel_zero ? 1'b0 : src_word[dy_idx];
                 3'd2: // Dither v1
                     add_bit = (lsb_value > sel_counter);
                 3'd3: // Dither v2
@@ -219,38 +271,46 @@ module dyadic_pwm (
     // =========================================================================
     // Duty scaling to the common 513-cycle period
     // =========================================================================
-    wire [4:0] factor  = 5'd1 << (4'd9 - pwm_bits);             // 1..16
-    wire [3:0] offset  = (factor == 5'd1) ? 4'd1 : factor[4:1]; // max(1, factor/2)
-    wire [9:0] duty_cap = (10'd1 << pwm_bits) - 10'd1;          // 2^B - 1
-
-    wire [9:0] base_plus = base_eff + add_bit;
-    wire [9:0] duty_b    = (base_plus > duty_cap) ? duty_cap : base_plus;
-    wire [13:0] scaled_w = (duty_b * factor) + offset;
-    wire [9:0] scaled    = scaled_w[9:0];
+    // Saturation at 2^B - 1 (as dpwm.vhd). The compare does not wait for
+    // add_bit, so it is off the longest path.
+    wire       at_cap = (base_eff >= duty_cap[8:0]);
+    wire [9:0] duty_b = at_cap ? duty_cap : (base_eff + add_bit);
 
     // Debug duty normalised to a 9-bit domain (top bits onto uo_out[7:3])
-    wire [8:0] duty9 = duty_b << (4'd9 - pwm_bits);
+    wire [8:0] duty9 = duty_b[8:0] << fshift;
 
     // =========================================================================
     // Latched compare value + dither/debug registers (at period start)
     // =========================================================================
+    // Two pipeline stages: duty_q at count 0, duty_compare = duty_q * factor +
+    // offset at count 1. The waveform is the same as with a load at count 0:
+    // at count 1 the high side is on and the low side is off for any compare
+    // value >= 1. The reset value 1 keeps the first period after reset equal.
+    reg [9:0] duty_q;
     reg [9:0] duty_compare;
     reg [4:0] duty_dbg;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            duty_compare <= 10'd0;
+            duty_q       <= 10'd0;
             duty_dbg     <= 5'd0;
             lsb_latch    <= 7'd0;
             msb_latch    <= 9'd0;
         end else if (ena && pwm_counter == 10'd0) begin
-            duty_compare <= scaled;
+            duty_q       <= duty_b;
             duty_dbg     <= duty9[8:4];
-            if (sel_counter == 7'd1) begin
+            if (sel_one) begin
                 lsb_latch <= lsb_value;
                 msb_latch <= base_duty;
             end
         end
+    end
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            duty_compare <= 10'd1;
+        else if (ena && pwm_counter == 10'd1)
+            duty_compare <= (duty_q << fshift) + {6'd0, offset};
     end
 
     // =========================================================================
