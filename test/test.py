@@ -200,12 +200,12 @@ async def test_dyadic_mode_4bit(dut):
 
 @cocotb.test()
 async def test_dither_modes(dut):
-    """Dithering v1/v2/v3 each average to base + (lsb+1)/2^m."""
+    """Dithering v1/v2/v3 each average to base + lsb/2^m (the first lsb periods)."""
     clock = Clock(dut.clk, 20, unit="ns")
     cocotb.start_soon(clock.start())
 
-    lsb, m = 7, 4
-    # v1->mode2, v2->mode3, v3->mode4 ; LSB=7 -> 8 of 16 periods add +1
+    lsb, m = 8, 4
+    # v1->mode2, v2->mode3, v3->mode4 ; LSB=8 -> 8 of 16 periods add +1
     exp = (8 * scaled_duty(100, lsb, 8, add=1) + 8 * scaled_duty(100, lsb, 8, add=0)) / 16
     for mode in (2, 3, 4):
         await reset_dut(dut)
@@ -239,3 +239,103 @@ async def test_uio_all_inputs(dut):
     await reset_dut(dut)
     await ClockCycles(dut.clk, 5)
     assert int(dut.uio_oe.value) == 0, f"uio_oe should be 0x00, got {dut.uio_oe.value}"
+
+
+# ---------------------------------------------------------------------------
+# Order tests: they check WHICH periods get the +1, not only the average.
+# Reference: Crovetti et al., IEEE TPEL 35(10), 2020, eq. (11) and Fig. 2, and
+# the original FPGA design (docs/dyadic_vhdl/dpwm.vhd). Pins only, so that the
+# same tests also run on the gate-level netlist.
+# ---------------------------------------------------------------------------
+
+def dyadic_pattern(m, lsb):
+    """Priority MUX: the first '1' of the window counter from the LSB, k,
+    selects bit m-1-k of the dither word; counter 0 adds nothing."""
+    out = []
+    for c in range(1 << m):
+        if c == 0:
+            out.append(0)
+        else:
+            k = (c & -c).bit_length() - 1
+            out.append((lsb >> (m - 1 - k)) & 1)
+    return out
+
+
+def thermometric_pattern(m, lsb):
+    """+1 in the first lsb periods of the 2^m window."""
+    return [1 if c < lsb else 0 for c in range(1 << m)]
+
+
+def is_rotation(seq, pattern):
+    n = len(pattern)
+    return any(all(seq[i] == pattern[(i + r) % n] for i in range(len(seq)))
+               for r in range(n))
+
+
+async def wait_period_start(dut):
+    """Wait for the rising edge of the sync clock (uo_out[2])."""
+    prev = (int(dut.uo_out.value) >> 2) & 1
+    while True:
+        await RisingEdge(dut.clk)
+        cur = (int(dut.uo_out.value) >> 2) & 1
+        if cur and not prev:
+            return
+        prev = cur
+
+
+async def plus1_sequence(dut, base_high, periods):
+    """High time of each period, aligned to the sync clock: 1 if > base."""
+    await wait_period_start(dut)
+    seq = []
+    for _ in range(periods):
+        high = 0
+        for _ in range(PWM_PERIOD):
+            await RisingEdge(dut.clk)
+            high += int(dut.uo_out.value) & 1
+        seq.append(1 if high > base_high else 0)
+    return seq
+
+
+async def check_order(dut, mode, m, bitsel, ui_val, uio_lsb, lsb, bits, pattern):
+    await reset_dut(dut)
+    await write_cfg(dut, CFG_BITS, bitsel)
+    await write_cfg(dut, CFG_CTRL, (mode << 3) | m)
+    dut.ui_in.value = ui_val
+    dut.uio_in.value = uio_lsb
+    await ClockCycles(dut.clk, 2 * PWM_PERIOD)
+    base_high = scaled_duty(ui_val, uio_lsb, bits, add=0)
+    seq = await plus1_sequence(dut, base_high, 2 << m)
+    exp = pattern(m, lsb)
+    assert sum(seq) == 2 * lsb, f"mode {mode} lsb {lsb}: {sum(seq)} boosted periods in 2 windows, expected {2 * lsb}"
+    assert is_rotation(seq, exp), (
+        f"mode {mode} lsb {lsb}: +1 order {''.join(map(str, seq))}, expected a rotation of "
+        f"{''.join(map(str, exp))}")
+
+
+@cocotb.test()
+async def test_dyadic_order(dut):
+    """Dyadic mode: the +1 periods follow the priority-MUX (DDPM) order."""
+    clock = Clock(dut.clk, 20, unit="ns")
+    cocotb.start_soon(clock.start())
+    for lsb in (5, 8, 1, 11):            # 5 = the papers' example D = 293/512
+        await check_order(dut, 1, 4, 3, 100, lsb, lsb, 8, dyadic_pattern)
+
+
+@cocotb.test()
+async def test_thermometric_order(dut):
+    """Dither v1: +1 in exactly the first lsb periods of the window."""
+    clock = Clock(dut.clk, 20, unit="ns")
+    cocotb.start_soon(clock.start())
+    for lsb in (5, 0, 15):
+        await check_order(dut, 2, 4, 3, 100, lsb, lsb, 8, thermometric_pattern)
+
+
+@cocotb.test()
+async def test_lsb_alignment(dut):
+    """5-bit base, m=4: the dither bits are the 4 bits directly below the MSBs.
+
+    ui_in=0b01100100, uio=0: control[11:7]=01100 (base 12), control[6:3]=1000.
+    """
+    clock = Clock(dut.clk, 20, unit="ns")
+    cocotb.start_soon(clock.start())
+    await check_order(dut, 1, 4, 0, 0b01100100, 0, 8, 5, dyadic_pattern)

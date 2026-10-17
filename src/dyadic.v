@@ -28,8 +28,10 @@
  *
  * Modes (dpwm_mode; forced Normal when dyadic_len = 0):
  *   0 Normal     - base duty only
- *   1 Dyadic     - +bit from src_word[hsb(counter)]; src = control LSBs or constant word
- *   2 Dither v1  - +bit = (lsb_value >= counter)
+ *   1 Dyadic     - +bit = src_word[m-1-k], k = lowest set bit of the counter
+ *                  (priority MUX of TPEL 2020 eq. 11, as dpwm.vhd); src = the m
+ *                  control bits below the B MSBs, or the constant word
+ *   2 Dither v1  - +bit = (lsb_value > counter): the first lsb periods (TPEL Fig. 2)
  *   3 Dither v2  - as v1 but lsb sampled once per 2^m window (at counter==1)
  *   4 Dither v3  - as v2 but base duty (MSB) also sampled at counter==1
  *
@@ -143,19 +145,24 @@ module dyadic_pwm (
     wire [6:0] len_mask    = (8'd1 << dyadic_len) - 8'd1;   // low m bits set
     wire [6:0] sel_counter = dyadic_counter & len_mask;     // m-bit counter value
 
-    // Highest set bit position of sel_counter (0 when counter == 0)
-    function [2:0] hsb7;
+    // Lowest set bit position of sel_counter (0 when counter == 0). The dyadic
+    // priority MUX selects data bit m-1-k for the lowest set bit k, so the MSB
+    // of the dither word is used in every 2nd period, the next bit in every 4th
+    // period, and so on (dpwm.vhd lines 308-314; TPEL 2020 eq. 11).
+    function [2:0] lsb7;
         input [6:0] v;
         begin
-            if      (v[6]) hsb7 = 3'd6;
-            else if (v[5]) hsb7 = 3'd5;
-            else if (v[4]) hsb7 = 3'd4;
-            else if (v[3]) hsb7 = 3'd3;
-            else if (v[2]) hsb7 = 3'd2;
-            else if (v[1]) hsb7 = 3'd1;
-            else           hsb7 = 3'd0;
+            if      (v[0]) lsb7 = 3'd0;
+            else if (v[1]) lsb7 = 3'd1;
+            else if (v[2]) lsb7 = 3'd2;
+            else if (v[3]) lsb7 = 3'd3;
+            else if (v[4]) lsb7 = 3'd4;
+            else if (v[5]) lsb7 = 3'd5;
+            else if (v[6]) lsb7 = 3'd6;
+            else           lsb7 = 3'd0;
         end
     endfunction
+    wire [2:0] dy_idx = dyadic_len - 3'd1 - lsb7(sel_counter);   // m-1-k
 
     // =========================================================================
     // Control word decomposition
@@ -164,8 +171,12 @@ module dyadic_pwm (
     wire [3:0] shift_amt = 4'd12 - pwm_bits;            // 3..7
     wire [8:0] base_duty = control_word >> shift_amt;   // up to 9 bits
 
-    // LSB word = low m bits of the control word (used for dyadic/dither).
-    wire [6:0] lsb_value  = control_word[6:0] & len_mask;
+    // LSB word = the m control bits directly below the B MSBs (as dpwm.vhd).
+    // If B + m > 12, these are the lowest m bits (they overlap the MSBs).
+    wire [4:0] used_bits  = {1'b0, pwm_bits} + {2'b0, dyadic_len};
+    wire [3:0] lsb_shift  = (used_bits <= 5'd12) ? (4'd12 - used_bits[3:0]) : 4'd0;
+    wire [13:0] cw_ext    = {2'b00, control_word};            // shift <= 7, so +:7 stays in range
+    wire [6:0] lsb_value  = cw_ext[lsb_shift +: 7] & len_mask;
     wire [6:0] word_value = dyadic_word        & len_mask;
     wire [6:0] src_word   = const_dyadic_flag ? word_value : lsb_value;
 
@@ -190,13 +201,13 @@ module dyadic_pwm (
         if (dyadic_len != 3'd0) begin
             case (dpwm_mode)
                 3'd1: // Dyadic
-                    add_bit = (sel_counter == 7'd0) ? 1'b0 : src_word[hsb7(sel_counter)];
+                    add_bit = (sel_counter == 7'd0) ? 1'b0 : src_word[dy_idx];
                 3'd2: // Dither v1
-                    add_bit = (lsb_value >= sel_counter);
+                    add_bit = (lsb_value > sel_counter);
                 3'd3: // Dither v2
-                    add_bit = (eff_lsb >= sel_counter);
+                    add_bit = (eff_lsb > sel_counter);
                 3'd4: begin // Dither v3
-                    add_bit  = (eff_lsb >= sel_counter);
+                    add_bit  = (eff_lsb > sel_counter);
                     base_eff = eff_msb;
                 end
                 default: // Normal

@@ -144,9 +144,11 @@ illegal codes).
 
 `pwm_counter` is the fine-grained counter that builds one PWM period. `dyadic_counter` is the
 *coarse* counter that advances once per PWM period; its low `m` bits (`sel_counter`) tell the mode
-logic *where in the `2^m`-period averaging window* we currently are. A small function `hsb7()`
-returns the **highest set bit position** of `sel_counter` — this is what makes the dyadic `+1`
-sequence spread out evenly (bit-reversal-like) instead of bunching up.
+logic *where in the `2^m`-period averaging window* we currently are. A small function `lsb7()`
+returns the **lowest set bit position** `k` of `sel_counter`. The dyadic mode uses bit `m-1-k` of the
+dither word (the priority multiplexer of the DDPM papers), so the `+1` periods of each bit are
+spread evenly over the window instead of bunching up. *(Corrected on branch `fix/dyadic-order`:
+the first port used the highest set bit, which gives contiguous blocks.)*
 
 ### 3.3 Control-word decomposition
 *(lines ~160–170)*
@@ -154,13 +156,16 @@ sequence spread out evenly (bit-reversal-like) instead of bunching up.
 ```
  shift_amt = 12 - pwm_bits                 (3..7)
  base_duty = control_word >> shift_amt      top B bits  → the integer duty
- lsb_value = control_word[6:0] & len_mask   low m bits  → the fractional part
+ lsb_shift = max(12 - pwm_bits - m, 0)
+ lsb_value = (control_word >> lsb_shift) & len_mask   the m bits below the B MSBs → the fraction
  word_value= dyadic_word       & len_mask
  src_word  = const_dyadic_flag ? word_value : lsb_value
 ```
 
 The **top `B` bits** of the 12-bit control word are the base duty (`B` = selected resolution). The
-**low `m` bits** are the fractional remainder used by the modulation. `src_word` chooses whether the
+**next `m` bits** (directly below them, as in the original VHDL) are the fractional remainder used
+by the modulation, so the control word is one MSB-aligned `B+m`-bit number. If `B + m > 12`, the
+lowest `m` bits are used (they overlap the base bits, as in the VHDL). `src_word` chooses whether the
 modulation sequence comes from the live control LSBs or from a fixed `dyadic_word` register.
 
 ### 3.4 Mode logic — `add_bit` and `base_eff`
@@ -173,22 +178,25 @@ When `dyadic_len = 0` it is forced to **Normal** (no modulation).
 | `dpwm_mode` | Name | `add_bit` rule |
 |---|---|---|
 | 0 | **Normal** | `0` (base duty only) |
-| 1 | **Dyadic** | `src_word[hsb7(sel_counter)]` (0 when `sel_counter==0`) |
-| 2 | **Dither v1** | `lsb_value ≥ sel_counter` |
-| 3 | **Dither v2** | `eff_lsb ≥ sel_counter` (LSB sampled once per window) |
-| 4 | **Dither v3** | `eff_lsb ≥ sel_counter`, **and** base duty also sampled once per window |
+| 1 | **Dyadic** | `src_word[m-1-lsb7(sel_counter)]` (0 when `sel_counter==0`) |
+| 2 | **Dither v1** | `lsb_value > sel_counter` (the first `lsb` periods) |
+| 3 | **Dither v2** | `eff_lsb > sel_counter` (LSB sampled once per window) |
+| 4 | **Dither v3** | `eff_lsb > sel_counter`, **and** base duty also sampled once per window |
 
 **Dyadic vs. dither, intuitively:**
 
-- *Dyadic* picks the `+1` periods by indexing `src_word` with the highest-set-bit of the window
-  counter. Because `hsb7` spreads the indices like a bit-reversed sequence, the boosted periods are
-  scattered as evenly as possible across the `2^m` window — low ripple, fully deterministic.
-- *Dither v1* is a straight threshold (`lsb ≥ position`) — a first-order sigma-delta. *v2* and *v3*
+- *Dyadic* picks the `+1` periods with the priority multiplexer of the DDPM papers: for window
+  position `c`, the lowest set bit `k` of `c` selects bit `m-1-k` of `src_word`. So the MSB of the
+  word is used in every 2nd period, the next bit in every 4th period, and so on: the boosted periods
+  are spread as evenly as possible, and the lowest-frequency ripple component is small. Example,
+  `m=4`, `lsb=5` (`0101`): `+1` in periods 2, 6, 8, 10, 14 of the window.
+- *Dither v1* is thermometric dithering: `+1` in the first `lsb` periods of the window
+  (`lsb > position`). *v2* and *v3*
   add **sample-and-hold** (`lsb_latch`, `msb_latch`, captured at `sel_counter==1`) so the control
   word is frozen for the duration of a window, preventing mid-window updates from disturbing the
   average.
 
-Over a full `2^m`-period window all four modulation modes average to `base + lsb/2^m` — i.e. they
+Over a full `2^m`-period window all four modulation modes average to exactly `base + lsb/2^m` — i.e. they
 recover the fractional bits that the base `B`-bit counter cannot represent directly. Example for
 `m=4`, `lsb=8`: 8 of the 16 periods get `+1`, so the average duty is `base + 0.5` LSB.
 

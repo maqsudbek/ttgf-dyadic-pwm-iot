@@ -19,9 +19,10 @@ is scaled onto that period by `scaled = duty·2^(9−B) + max(1, 2^(8−B))`.
 
 **Modes.** Beyond plain **Normal** PWM, the design adds:
 - **Dyadic** — the lower `m` bits of the control word are distributed as a `+1` sequence across a
-  2^m-period window (the bit selected each period is `lsb[highest_set_bit(counter)]`), raising the
+  2^m-period window (the bit selected each period is `lsb[m-1-lowest_set_bit(counter)]`, the DDPM
+  priority multiplexer), raising the
   *effective* resolution by up to ~7 bits without extra base width.
-- **Dithering v1/v2/v3** — a sigma-delta-style `+1` decision (`lsb ≥ counter`); v2 samples the LSB
+- **Dithering v1/v2/v3** — thermometric `+1` in the first `lsb` periods (`lsb > counter`); v2 samples the LSB
   once per 2^m window, v3 also samples the base duty once per window.
 - A **constant dyadic word** can replace the control LSBs as the modulation source.
 
