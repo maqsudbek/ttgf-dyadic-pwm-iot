@@ -30,3 +30,6 @@ pics/.venv/
 
 # Downloaded CI artifacts (large GDS/STA logs; keep reports in .md, not the raw dumps)
 .claude/harden/run12/
+
+# Claude-only — never tracked on main (lives on the test branch)
+.claude/
