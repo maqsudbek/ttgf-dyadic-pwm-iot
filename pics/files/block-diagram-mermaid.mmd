@@ -1,0 +1,53 @@
+
+graph TB
+    subgraph "TinyTapeout Interface (34 pins)"
+        CLK[clk] --> DPWM
+        RST[rst_n] --> DPWM
+        ENA[ena] --> DPWM
+        UI[ui_in 7:0] --> DPWM
+        DPWM --> UO[uo_out 7:0]
+        DPWM --> UIO[uio_out 7:0]
+    end
+
+    subgraph "tt_um_maqsudbek_dyadic_pwm (project.v)"
+        DPWM[dyadic_pwm core]
+    end
+
+    subgraph "dyadic_pwm (dyadic.v)"
+        direction TB
+        CONFIG[Config Register File<br/>addr 0: duty<br/>addr 1: mode+bits<br/>addr 2: dyadic_word] --> MODE
+        CONFIG --> DUTY
+
+        COUNTER[10-bit PWM Counter<br/>0–512] --> COMPARE
+        COUNTER --> DYADIC
+
+        DYADIC[7-bit Dyadic Counter<br/>+ HSB function] --> DITHER
+        DITHER[Dither Logic<br/>Normal / Dyadic / Dither3] --> SCALE
+
+        MODE[Mode Decode<br/>5/6/7/8/9-bit<br/>Normal/Dyadic/Dither] --> DITHER
+        MODE --> SCALE
+
+        DUTY[Duty Register] --> COMPARE
+        COMPARE[Duty Compare] --> SCALE
+
+        SCALE[Duty Scaling<br/>to 513-cycle period] --> PWM
+        PWM[PWM Generator<br/>+ Dead-time] --> OUT[pwm_out / pwm_out_n]
+    end
+
+    style CLK fill:#3355cc,stroke:#fff,color:#fff
+    style RST fill:#3355cc,stroke:#fff,color:#fff
+    style ENA fill:#3355cc,stroke:#fff,color:#fff
+    style UI fill:#448844,stroke:#fff,color:#fff
+    style UO fill:#cc6633,stroke:#fff,color:#fff
+    style UIO fill:#cc6633,stroke:#fff,color:#fff
+    style OUT fill:#cc6633,stroke:#fff,color:#fff
+    style DPWM fill:#aa44cc,stroke:#fff,color:#fff
+    style CONFIG fill:#2d4a22,stroke:#fff,color:#fff
+    style COUNTER fill:#2d4a22,stroke:#fff,color:#fff
+    style DYADIC fill:#2d4a22,stroke:#fff,color:#fff
+    style DITHER fill:#2d4a22,stroke:#fff,color:#fff
+    style MODE fill:#2d4a22,stroke:#fff,color:#fff
+    style DUTY fill:#2d4a22,stroke:#fff,color:#fff
+    style COMPARE fill:#2d4a22,stroke:#fff,color:#fff
+    style SCALE fill:#2d4a22,stroke:#fff,color:#fff
+    style PWM fill:#2d4a22,stroke:#fff,color:#fff
