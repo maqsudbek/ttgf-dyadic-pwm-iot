@@ -2,6 +2,18 @@
 
 Running list of questions and their answers as they get resolved. Add new ones at the top.
 
+## Session 05 — silicon errata
+- **Q: Does the taped-out chip match the FPGA-proven VHDL? (session 05)**
+  A: **No, not in the dyadic/dither modes and the config write.** Normal PWM matches exactly (all widths,
+  all 4096 codes). Errors E1–E7 found by a GHDL-vs-Icarus period-by-period comparison (420 cases): wrong dyadic
+  order (E1), wrong LSB source bits (E2), dither bias (E3, also in VHDL), overlap (E4, also in VHDL), const
+  word at m=1 (E5), config-write pin-order hazard (E6), cosmetic (E7). **Decision:** silicon cannot change;
+  document prominently, give host-side workarounds for the demo board, keep a corrected core
+  (`docs/errata/rtl/dyadic_fixed.v`; default keeps the VHDL dither `>=`; option `-DDYADIC_UNBIASED_DITHER`).
+  `src/` stays frozen. Details: [errata.md](errata.md).
+- **Q: Is the demo board an RP2040? (session 05)** A: Board v3 (current, ships with GF shuttles) has an **RP2350**;
+  RP2040 was TT04–TT08. Source: tt-micropython-firmware `demoboard_detect.py`. Docs now say "RP2 microcontroller".
+
 ## Answered
 - **Q: Target clock + scope + pin strategy for the GF26a port (session 02)?**
   A: Clock = **50 MHz** (`clock_hz=50000000`; 513-cycle period, ~97.466 kHz, 6-cycle dead-time).

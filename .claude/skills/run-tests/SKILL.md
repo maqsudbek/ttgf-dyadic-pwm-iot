@@ -26,6 +26,11 @@ the post-harden `gate_level_netlist.v`; GL power ports are `VPWR`/`VGND`).
 - System sim tools (need sudo, install when first running tests):
   `sudo apt-get install -y iverilog gtkwave`.
 
+## Errata tests (separate suite)
+The submitted RTL has known errors (see the `dyadic-errata` skill). Their tests are in `docs/errata/test/`:
+`source .venv/bin/activate && cd docs/errata/test && ./run_checks.sh` (about 80 s). The original
+`test/test.py` passes on both the submitted and the corrected RTL because it checks averages only.
+
 ## Keep in sync
 - `test/Makefile` `PROJECT_SOURCES` must list every `src/*.v` file (e.g. `project.v dyadic.v`).
 - `test/tb.v` must instantiate the current top module name (the `tt_um_...` wrapper).

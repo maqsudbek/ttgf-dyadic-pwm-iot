@@ -5,6 +5,11 @@ block, the duty-scaling math, and where the speed limit comes from. For the pin 
 datasheet read see [info.md](info.md); for how to operate the chip after tapeout see
 [usage.md](usage.md).
 
+> ⚠️ **Known errata.** The taped-out chip differs from the original VHDL in the dyadic order (E1),
+> in the pins that carry the fraction (E2) and in other details. This document describes the chip
+> **as it is built**. The errors, the workarounds and the corrected design are in
+> [errata/README.md](errata/README.md).
+
 All RTL is in two files:
 
 | File | Module | Role |
@@ -28,11 +33,12 @@ This design fixes the **period at 513 clock cycles** for *all* resolutions and d
 from a **12-bit control word** plus a few static configuration registers. On top of plain ("Normal")
 PWM it adds two ways to get *more effective resolution than the base counter has bits*:
 
-- **Dyadic modulation** — deterministically nudges the duty by `+1` on a fixed, evenly-spread subset
-  of switching periods.
+- **Dyadic modulation** — deterministically nudges the duty by `+1` on a fixed subset of switching
+  periods (in blocks — see errata E1).
 - **Dithering** (3 variants) — a sigma-delta-style `+1` decision spread over a window.
 
-Both average out, over a `2^m`-period window, to a fractional duty between two integer steps.
+Both average out, over a `2^m`-period window, to a fractional duty between two integer steps
+(dithering has a `+1/2^m` bias — see errata E3).
 
 ```
                  ui_in[7:0], uio_in[7:0]  (clk, rst_n, ena)
@@ -89,7 +95,7 @@ The TinyTapeout pin set is fixed (8 inputs, 8 outputs, 8 bidirectional). The bid
  uio_in[7]   ─► cfg_we   : 0 = RUN, 1 = CONFIG WRITE
  uio_in[6:4] ─► cfg_addr : config register address (config mode)
  uio_in[3:0] ─► control LSBs (run mode)
- clk         ─► from RP2040, 1 Hz .. ~66 MHz
+ clk         ─► from the RP2 microcontroller, 1 Hz .. ~66 MHz
  rst_n       ─► active-low reset
  ena         ─► 1 while powered (gates all sequential logic)
 
@@ -118,6 +124,10 @@ On every clock (while `ena`), the block looks at `uio_in[7]`:
 The configuration registers are static — you write them once at start-up, then leave `uio_in[7]=0`
 and stream control words.
 
+> ⚠️ **Errata E6.** The register is written at **every** clock edge while `uio_in[7] = 1`. Do not change
+> `ui_in` before `uio_in[7]` goes low. On the demo board, stop the clock and use a single step.
+> See [errata/workaround-guide.md](errata/workaround-guide.md#4-start-the-chip-what-chipstart-does).
+
 | Addr (`uio_in[6:4]`) | Register | Fields (`ui_in` write data) |
 |---|---|---|
 | `0` | mode / length | `[2:0]` `dyadic_len` (m, 0–7) · `[5:3]` `dpwm_mode` (0–4) · `[6]` `const_dyadic_flag` |
@@ -145,8 +155,15 @@ illegal codes).
 `pwm_counter` is the fine-grained counter that builds one PWM period. `dyadic_counter` is the
 *coarse* counter that advances once per PWM period; its low `m` bits (`sel_counter`) tell the mode
 logic *where in the `2^m`-period averaging window* we currently are. A small function `hsb7()`
-returns the **highest set bit position** of `sel_counter` — this is what makes the dyadic `+1`
-sequence spread out evenly (bit-reversal-like) instead of bunching up.
+returns the **highest set bit position** of `sel_counter`. The dyadic mode uses it to choose the bit
+of the LSB word that is added in this period. Bit `i` is added in the `2^i` consecutive periods
+`k = 2^i … 2^(i+1)-1`, so the `+1` periods come in **blocks**.
+
+> ⚠️ **Errata E1.** The original VHDL uses the **lowest** set bit
+> (`index = (m-1) − lowest_set_bit(k)`). It spreads the `+1` periods evenly (the MSB of the word is
+> added in every odd period). The chip gives the same average duty but a larger ripple
+> (worst running error 4.0 against 1.06 base steps × periods at `m = 4`).
+> See [errata/README.md](errata/README.md#e1--dyadic-order).
 
 ### 3.3 Control-word decomposition
 *(lines ~160–170)*
@@ -162,6 +179,11 @@ sequence spread out evenly (bit-reversal-like) instead of bunching up.
 The **top `B` bits** of the 12-bit control word are the base duty (`B` = selected resolution). The
 **low `m` bits** are the fractional remainder used by the modulation. `src_word` chooses whether the
 modulation sequence comes from the live control LSBs or from a fixed `dyadic_word` register.
+
+> ⚠️ **Errata E2 and E4.** The chip reads the fraction from `control_word[m-1:0]`. The VHDL reads the
+> `m` bits directly below the base duty. They are equal only when `B + m ≥ 12`. If `B + m > 12`, the
+> fraction overlaps the base duty (also in the VHDL). Use `m ≤ 12 − B` and put the fraction in the
+> lowest bits. See [errata/README.md](errata/README.md#e2--lsb-word-comes-from-other-pins).
 
 ### 3.4 Mode logic — `add_bit` and `base_eff`
 *(lines ~181–206)*
@@ -181,16 +203,20 @@ When `dyadic_len = 0` it is forced to **Normal** (no modulation).
 **Dyadic vs. dither, intuitively:**
 
 - *Dyadic* picks the `+1` periods by indexing `src_word` with the highest-set-bit of the window
-  counter. Because `hsb7` spreads the indices like a bit-reversed sequence, the boosted periods are
-  scattered as evenly as possible across the `2^m` window — low ripple, fully deterministic.
+  counter. The boosted periods come in blocks (errata E1) — fully deterministic, but with more
+  ripple than the VHDL.
 - *Dither v1* is a straight threshold (`lsb ≥ position`) — a first-order sigma-delta. *v2* and *v3*
   add **sample-and-hold** (`lsb_latch`, `msb_latch`, captured at `sel_counter==1`) so the control
   word is frozen for the duration of a window, preventing mid-window updates from disturbing the
   average.
 
-Over a full `2^m`-period window all four modulation modes average to `base + lsb/2^m` — i.e. they
-recover the fractional bits that the base `B`-bit counter cannot represent directly. Example for
-`m=4`, `lsb=8`: 8 of the 16 periods get `+1`, so the average duty is `base + 0.5` LSB.
+Over a full `2^m`-period window the **dyadic** mode averages to `base + lsb/2^m` — it recovers the
+fractional bits that the base `B`-bit counter cannot represent directly. Example for `m=4`, `lsb=8`:
+8 of the 16 periods get `+1`, so the average duty is `base + 0.5` LSB.
+
+> ⚠️ **Errata E3.** The **dither** modes compare with `≥`. The counter starts at 0, so `lsb + 1` periods
+> get `+1`. The average is `base + (lsb + 1)/2^m`. Use dyadic mode, or write `value − 1` as the control word
+> ([errata/README.md](errata/README.md#e3--dither-modes-add-one-step-too-much)).
 
 ### 3.5 Duty scaling onto the 513-cycle period
 *(lines ~208–221)*
@@ -254,7 +280,7 @@ clock downstream logic in lock-step with the PWM.
 |---|---|
 | Switching period | **513 clocks** (fixed) for every resolution |
 | Switching frequency | `clk / 513` → ≈ **97.5 kHz @ 50 MHz**, ≈ 58 kHz @ 30 MHz |
-| Resolutions | 5 / 6 / 7 / 8 / 9-bit (base), up to ~+7 effective bits via dyadic/dither |
+| Resolutions | 5 / 6 / 7 / 8 / 9-bit (base), plus up to `12 − B` extra bits via dyadic/dither (7 at 5-bit, 4 at 8-bit) |
 | Dead-time | 6 clocks = **120 ns @ 50 MHz** |
 | Control word | 12 bits = `{ui_in[7:0], uio_in[3:0]}` |
 | Config registers | 3 (mode/len, width, constant word) |
@@ -276,7 +302,7 @@ Post-layout multi-corner STA (GF180MCU, 1×1 tile) shows:
 | Slow (125 °C, 3.00 V) | **−13.2 ns** | does **not** meet 50 MHz |
 
 Hold is met at every corner (+0.52 ns). So: **typical silicon runs at 50 MHz**; for guaranteed
-operation across *all* corners use **≤ ~30 MHz**. Because the RP2040 sets the clock, you simply pick
+operation across *all* corners use **≤ ~30 MHz**. Because the RP2 microcontroller sets the clock, you simply pick
 a frequency that suits your corner/temperature. Over-clocking at a bad corner only corrupts the duty
 of individual periods (a soft, recoverable glitch) — it does not hang, and dead-time is preserved
 (it is short and off the critical path). Full numbers are in [info.md](info.md).

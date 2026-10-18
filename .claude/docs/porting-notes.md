@@ -36,14 +36,14 @@ deltas are in the build/PDK config and timing closure, not the RTL.
 6. `docs/info.md`: fill "How it works / How to test / External hardware" (port from `dyadic_doc.md`).
 7. Run `run-tests`, then `tt-compliance-check`, then optionally `local-harden` before pushing.
 
-## Design recap (full detail in dyadic_doc.md)
+## Design recap (full detail in dyadic_doc.md; **legacy IHP port** — the GF chip differs, see `.claude/docs/errata.md`)
 - 12-bit control split: `ui_in[7:0]` = MSB[11:4], `uio_in[3:0]` = LSB[3:0].
-- `uio_in[6:4]` = dyadic length (0/normal, 2–7); `uio_in[7]` = mode (0 normal / 1 dyadic).
+- IHP port: `uio_in[6:4]` = dyadic length (0/normal, 2–7); `uio_in[7]` = mode (0 normal / 1 dyadic).
+  **GF chip:** `uio_in[7]` = config-write strobe, `uio_in[6:4]` = register address.
 - Outputs: `uo_out[0]` PWM_HIGH, `[1]` PWM_LOW (complementary, dead-time), `[2]` sync clk, `[7:3]` duty MSBs.
-- 8-bit base PWM; dyadic adds a +1 sequence (MSB-index of an N-bit counter selects an LSB bit)
-  for up to ~15-bit effective resolution. 513-cycle period, 6-cycle dead-time at 50 MHz → ~97.5 kHz.
-- The original VHDL also had 5/6/7/8/9-bit selectable PWM + 3 dithering modes + multi-phase clocks;
-  the TT port simplified to fixed 8-bit + normal/dyadic only. Revisit if I/O budget allows.
+- IHP port: 8-bit base PWM; dyadic adds a +1 sequence. 513-cycle period, 6-cycle dead-time at 50 MHz → ~97.5 kHz.
+  **GF chip:** 5–9-bit PWM + Normal/Dyadic/3 dither modes; extra resolution `12 - B` bits.
+- The original VHDL also had multi-phase clocks and a x2 clock; the GF chip dropped them (I/O budget).
 
 ## Open design decisions for the port
 - Final `clk` frequency on GF26a (affects switching freq + `clock_hz`/`CLOCK_PERIOD`).

@@ -12,6 +12,13 @@ test/__pycache__/
 test/results.xml
 test/gate_level_netlist.v
 
+# Errata test outputs
+docs/errata/test/sim_build/
+docs/errata/test/__pycache__/
+docs/errata/test/results*.xml
+docs/errata/host/__pycache__/
+__pycache__/
+
 # Claude Code tooling (not part of the TT submission set)
 .mcp.json
 .claude/settings.local.json

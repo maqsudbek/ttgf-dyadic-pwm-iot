@@ -20,13 +20,19 @@ Indexed in `.claude/olddyadic/README.md`. Pull only the file you need.
 | Port plan / IHP→GF deltas | `.claude/docs/porting-notes.md` |
 
 ## Algorithm in one paragraph
-12-bit control = `{ui_in[7:0], uio_in[3:0]}`. Base PWM is 8-bit (`control[11:4]`). In **dyadic
-mode** (`uio_in[7]=1`, length `uio_in[6:4]`∈2..7), an N-bit counter increments once per switching
-period; the **position of its most-significant set bit** indexes a bit of the LSB word, which is
-added (+1) to the duty that period. Over a full 2^N counter cycle the average addition equals
-`LSB_value / 2^N`, giving up to ~15-bit effective resolution. Counter==0 adds nothing.
-Outputs: `uo_out[0]`=PWM_HIGH, `[1]`=PWM_LOW (complementary, 6-cycle dead-time), `[2]`=sync clk,
+> ⚠️ **Errata.** The original VHDL picks the bit with the **lowest** set bit of the counter
+> (`index = (m-1) - lowest_set_bit`). The taped-out GF chip uses the **highest** set bit (errata E1), and
+> reads the fraction from other control bits than the VHDL (E2). See the `dyadic-errata` skill and
+> `.claude/docs/errata.md` before you rely on this text.
+
+The taped-out GF chip (`src/dyadic.v`): 12-bit control = `{ui_in[7:0], uio_in[3:0]}`. Selectable 5–9-bit PWM
+(register 1). `uio_in[7]=1` is a **config write** (address `uio_in[6:4]`, data `ui_in`), not a mode bit.
+Register 0 holds `m` (`[2:0]`), the mode (`[5:3]`: 0 Normal, 1 Dyadic, 2–4 Dither) and the constant-word flag.
+In dyadic mode a window counter (`2^m` periods) selects one bit of the fraction (the low `m` control bits):
+the chip uses the highest set bit of the counter, the VHDL the lowest. The bit is added (+1) to the duty of that
+period. Over a window the average addition is `fraction / 2^m`. The extra resolution is `12 - B` bits. Counter 0
+adds nothing. Outputs: `uo_out[0]`=PWM_HIGH, `[1]`=PWM_LOW (complementary, 6-cycle dead-time), `[2]`=sync clk,
 `[7:3]`=duty MSBs. 513-cycle period → ~97.5 kHz at 50 MHz.
 
-The original VHDL (`dpwm.vhd`) additionally supports 5/6/7/8/9-bit selectable PWM and 3 dithering
-modes — the TT port dropped these to fit I/O. Reconsider per `.claude/docs/open-questions.md`.
+The legacy IHP port (`.claude/olddyadic/digital_dyadic_pwm`) had a fixed 8-bit PWM and used `uio_in[7]` as the
+dyadic mode bit. The GF chip restored the 5–9-bit widths and the three dither modes.
