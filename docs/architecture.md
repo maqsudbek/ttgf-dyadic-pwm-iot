@@ -149,6 +149,7 @@ returns the **lowest set bit position** `k` of `sel_counter`. The dyadic mode us
 dither word (the priority multiplexer of the DDPM papers), so the `+1` periods of each bit are
 spread evenly over the window instead of bunching up. *(Corrected on branch `fix/dyadic-order`:
 the first port used the highest set bit, which gives contiguous blocks.)*
+See [dyadic-order-explained.md](dyadic-order-explained.md) for tables of every period, and for how to run the fabricated chip correctly.
 
 ### 3.3 Control-word decomposition
 *(lines ~160–170)*

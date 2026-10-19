@@ -31,6 +31,7 @@ counter.
 | [docs/info.md](docs/info.md) | TinyTapeout **datasheet** — pin map, config registers, how-to-test, post-layout results |
 | [docs/architecture.md](docs/architecture.md) | **How it works inside** — block diagram, datapath, every sub-block, the duty-scaling math, the critical path |
 | [docs/usage.md](docs/usage.md) | **How to drive it after tapeout** — TinyTapeout demo board (MicroPython/Commander), config recipes, waveforms, half-bridge wiring |
+| [docs/dyadic-order-explained.md](docs/dyadic-order-explained.md) | **Dyadic order** — what the papers say, what the fabricated chip does (period-by-period tables), and workarounds to get the correct waveform from it |
 
 ## Implementation status
 
